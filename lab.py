@@ -51,20 +51,24 @@ def lowest_cost(recipes_db, food_name):
     atomic_dic = atomic_ingredient_costs(recipes_db)
     compound_dic = compound_ingredient_possibilities(recipes_db)
     def helper(f):
-        cost = 0
         min_cost = 9999999
+        if(f not in atomic_dic and f not in compound_dic):
+            return
         if(f in atomic_dic):
             return atomic_dic[f]
         else:
             if(f in compound_dic):
                 for recipe in compound_dic[f]:
+                    cost = 0
                     for ingridient in recipe:
-                        for i in range(ingridient[1]):
-                            cost = cost + helper(ingridient[0])
+                        catch = helper(ingridient[0]) 
+                        if(catch == None):
+                            return
+                        cost = cost + catch * ingridient[1]
                     if (cost < min_cost):
                         min_cost = cost
         if(min_cost != 0):                
-            return cost
+            return min_cost
     
     return helper(food_name)
 
@@ -125,6 +129,9 @@ def all_flat_recipes(recipes_db, food_name):
     """
     raise NotImplementedError
 
+def _filter_graph(graph, elts):
+    elts = set(elts)
+    return [i for i in graph if i[1] not in elts]
 
 if __name__ == "__main__":
     # load recipe databases from the write-up
@@ -136,4 +143,7 @@ if __name__ == "__main__":
 
     with open("test_recipes/cookie_recipes.pickle", "rb") as f:
         cookie_recipes_db = pickle.load(f)
-    print(lowest_cost(example_recipes_db, "cheese"))
+    
+    graph = _filter_graph(example_recipes_db, ("cow",))
+    
+    print(lowest_cost(graph, "cheese"))
