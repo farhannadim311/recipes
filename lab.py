@@ -42,7 +42,7 @@ def compound_ingredient_possibilities(recipes_db):
     
 
 
-def lowest_cost(recipes_db, food_name):
+def lowest_cost(recipes_db, food_name, forbidden_item = None):
     """
     Given a recipes database and the name of a food (str), return the lowest
     cost of a full recipe for the given food item or None if there is no way
@@ -50,6 +50,12 @@ def lowest_cost(recipes_db, food_name):
     """
     atomic_dic = atomic_ingredient_costs(recipes_db)
     compound_dic = compound_ingredient_possibilities(recipes_db)
+    if(forbidden_item != None):
+        for items in forbidden_item:
+            if(items in atomic_dic):
+                del atomic_dic[items]
+            if(items in compound_dic):
+                del compound_dic[items]
     def helper(f):
         min_cost = 9999999
         if(f not in atomic_dic and f not in compound_dic):
@@ -60,16 +66,18 @@ def lowest_cost(recipes_db, food_name):
             if(f in compound_dic):
                 for recipe in compound_dic[f]:
                     cost = 0
+                    ingridient_missing = False
                     for ingridient in recipe:
                         catch = helper(ingridient[0]) 
                         if(catch == None):
-                            return
+                            ingridient_missing = True 
+                            break 
                         cost = cost + catch * ingridient[1]
-                    if (cost < min_cost):
-                        min_cost = cost
-        if(min_cost != 0):                
+                    if(not(ingridient_missing)):
+                        if (cost < min_cost):
+                            min_cost = cost
+        if(min_cost != 0 and min_cost != 9999999):                
             return min_cost
-    
     return helper(food_name)
 
 
@@ -82,7 +90,11 @@ def scaled_recipe(recipe_dict, n):
     Given a dictionary of ingredients mapped to quantities needed, returns a
     new dictionary with the quantities scaled by n.
     """
-    raise NotImplementedError
+    new_dic = {}
+    for key, values in recipe_dict.items():
+        new_dic[key] = values * n
+    return new_dic
+
 
 
 def add_recipes(recipe_dicts):
@@ -96,10 +108,17 @@ def add_recipes(recipe_dicts):
     should return:
         {'milk':3, 'chocolate': 1, 'sugar': 1}
     """
-    raise NotImplementedError
+    new_dic = {}
+    for dic in recipe_dicts:
+        for key, value in dic.items():
+            if(key in new_dic):
+                new_dic[key] += value
+            else:
+                new_dic[key] = value
+    return new_dic
 
 
-def cheapest_flat_recipe(recipes_db, food_name):
+def cheapest_flat_recipe(recipes_db, food_name, forbidden_item = None):
     """
     Given a recipes database and the name of a food (str), return a dictionary
     (mapping atomic food items to quantities) representing the cheapest full
@@ -107,7 +126,57 @@ def cheapest_flat_recipe(recipes_db, food_name):
 
     Returns None if there is no possible recipe.
     """
-    raise NotImplementedError
+    #Observation - right now you are finding local minimum sure, as in the cheapest way to make the ingridients of a burger but there might be a burger with cheaper ingridients
+    # Deleting the item in dictionary is weak because the ingridients can be compound as well
+    atomic_dic = atomic_ingredient_costs(recipes_db)
+    compound_dic = compound_ingredient_possibilities(recipes_db)
+    if(forbidden_item != None):
+        for items in forbidden_item:
+            if(items in atomic_dic):
+                del atomic_dic[items]
+            if(items in compound_dic):
+                del compound_dic[items]
+    items = {}
+    tmp = []
+    def helper(f, amount):
+        nonlocal tmp
+        min_cost = 9999999
+        l = {}
+        if(f not in atomic_dic and f not in compound_dic):
+            return
+        if(f in atomic_dic):
+            if(f in items):
+                items[f] += amount
+            else:
+                items[f] = amount
+            return atomic_dic[f]
+        else:
+            if(f in compound_dic):
+                for recipe in compound_dic[f]:
+                    cost = 0
+                    ingridient_missing = False
+                    l = {}
+                    for ingridient in recipe:
+                        catch = helper(ingridient[0], ingridient[1]) 
+                        if(catch == None):
+                            ingridient_missing = True 
+                            break 
+                        cost = cost + catch * ingridient[1]
+                        l[ingridient[0]] = ingridient[1] 
+                    if(not(ingridient_missing)):
+                        if (cost < min_cost):
+                            tmp.append(recipe)
+                            print(tmp)
+                            min_cost = cost
+
+        if(min_cost != 0 and min_cost != 9999999):                
+            return min_cost
+           
+    helper(food_name, 1)
+    return items
+    
+
+
 
 
 def combine_recipes(nested_recipes):
@@ -144,6 +213,4 @@ if __name__ == "__main__":
     with open("test_recipes/cookie_recipes.pickle", "rb") as f:
         cookie_recipes_db = pickle.load(f)
     
-    graph = _filter_graph(example_recipes_db, ("cow",))
-    
-    print(lowest_cost(graph, "cheese"))
+    print(cheapest_flat_recipe(example_recipes_db, "burger"))
