@@ -235,11 +235,12 @@ def all_flat_recipes(recipes_db, food_name, forbidden_item = None):
 
     Returns an empty list if there are no possible recipes
     """
+    
     #cheese - > (milk , time), cutting edge lab
     #.  milk - >  cow, stool
+    final = []
     atomic_dic = atomic_ingredient_costs(recipes_db)
     compound_dic = compound_ingredient_possibilities(recipes_db) # lists a compound ingridient to its recipies, can have multiple recipes
-    to_pass = []
     if(forbidden_item != None):
         for items in forbidden_item:
             if(items in atomic_dic):
@@ -248,23 +249,37 @@ def all_flat_recipes(recipes_db, food_name, forbidden_item = None):
                 del compound_dic[items]
     if(food_name in atomic_dic):
         return [{food_name : 1}]
-    def helper(food, times):
-        if(food in atomic_dic):
-            return
-        for recipie in compound_dic[food]:
-            some = []
-            ls = {}
-            for ingridient in recipie:
-                helper(ingridient[0], ingridient[1])
-                if(food in compound_dic):
-                    if(ingridient[0] not in compound_dic):
-                        ls[ingridient[0]] = ingridient[1]
-            if(len(ls) != 0):
-                some.append(ls)
-                to_pass.append(ls)
-    helper(food_name, 1)
-    print(to_pass)
-    return combine_recipes(to_pass)
+    def helper(food, amount):
+        res = []
+        final = []
+        if food in atomic_dic:
+            return [{food: 1}]
+        else:
+            for recipe in compound_dic[food]:
+                catch = []
+                for ingridient in recipe:
+                    catch.append(helper(ingridient[0], ingridient[1]))
+                    s = catch[-1]
+                    j = catch[-1][0]
+                    for i in range(len(catch[-1])):
+                        for j in range(len(catch[-1][i])):
+                            dic = catch[-1][j]
+                            dic = scaled_recipe(dic, ingridient[1])
+                            catch[-1][j] = dic
+
+                res.append(combine_recipes(catch))
+            for lst in res:
+                final += lst
+            return final
+
+            
+            
+                
+    return helper(food_name,1)
+                  
+    
+        
+    
 
 
 
@@ -289,5 +304,6 @@ if __name__ == "__main__":
     with open("test_recipes/big_recipes_16.pickle", "rb") as f:
         big = pickle.load(f)
     
-    print(all_flat_recipes(example_recipes_db, "cheese"))
+    print(len(all_flat_recipes(example_recipes_db, "burger")))
+    #print(all_flat_recipes(cookie_recipes_db, "cookie sandwich"))
    
