@@ -238,7 +238,6 @@ def all_flat_recipes(recipes_db, food_name, forbidden_item = None):
     
     #cheese - > (milk , time), cutting edge lab
     #.  milk - >  cow, stool
-    final = []
     atomic_dic = atomic_ingredient_costs(recipes_db)
     compound_dic = compound_ingredient_possibilities(recipes_db) # lists a compound ingridient to its recipies, can have multiple recipes
     if(forbidden_item != None):
@@ -249,24 +248,22 @@ def all_flat_recipes(recipes_db, food_name, forbidden_item = None):
                 del compound_dic[items]
     if(food_name in atomic_dic):
         return [{food_name : 1}]
-    def helper(food, amount):
+    def helper(food):
         res = []
         final = []
         if food in atomic_dic:
             return [{food: 1}]
         else:
+            if(food not in atomic_dic and food not in compound_dic):
+                return []
             for recipe in compound_dic[food]:
                 catch = []
                 for ingridient in recipe:
-                    catch.append(helper(ingridient[0], ingridient[1]))
-                    s = catch[-1]
-                    j = catch[-1][0]
-                    for i in range(len(catch[-1])):
-                        for j in range(len(catch[-1][i])):
-                            dic = catch[-1][j]
-                            dic = scaled_recipe(dic, ingridient[1])
-                            catch[-1][j] = dic
-
+                    catch.append(helper(ingridient[0]))
+                    for j in range(len(catch[-1])):
+                        dic = catch[-1][j]
+                        dic = scaled_recipe(dic, ingridient[1])
+                        catch[-1][j] = dic
                 res.append(combine_recipes(catch))
             for lst in res:
                 final += lst
@@ -275,16 +272,9 @@ def all_flat_recipes(recipes_db, food_name, forbidden_item = None):
             
             
                 
-    return helper(food_name,1)
+    return helper(food_name)
                   
     
-        
-    
-
-
-
-                        
-
 
 
 def _filter_graph(graph, elts):
@@ -304,6 +294,6 @@ if __name__ == "__main__":
     with open("test_recipes/big_recipes_16.pickle", "rb") as f:
         big = pickle.load(f)
     
-    print(len(all_flat_recipes(example_recipes_db, "burger")))
+    #print(all_flat_recipes(example_recipes_db, "proteim", ["cow"]))
     #print(all_flat_recipes(cookie_recipes_db, "cookie sandwich"))
    
